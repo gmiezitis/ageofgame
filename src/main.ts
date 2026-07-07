@@ -83,8 +83,8 @@ const capturePlayfield = async (): Promise<PlaygroundInitPayload> => {
     const sources = await desktopCapturer.getSources({
         types: ["screen", "window"],
         thumbnailSize: {
-            width: Math.round(width * scaleFactor),
-            height: Math.round(height * scaleFactor),
+            width: 4096,
+            height: 4096,
         },
     });
 
@@ -228,6 +228,49 @@ if (!gotLock) {
         ipcMain.handle("screen-playground:save-snapshot", (_event, dataUrl: string) => saveSnapshot(dataUrl));
         ipcMain.on("screen-playground:close", () => {
             gameWindow?.close();
+        });
+        ipcMain.on("screen-playground:toggle-fullscreen", () => {
+            if (gameWindow && !gameWindow.isDestroyed()) {
+                const isFullscreen = gameWindow.isFullScreen();
+                gameWindow.setFullScreen(!isFullscreen);
+            }
+        });
+        ipcMain.on("screen-playground:select-source", async (_event, sourceId: string) => {
+            if (!gameWindow || gameWindow.isDestroyed()) return;
+
+            if (sourceId.startsWith("screen:")) {
+                try {
+                    const sources = await desktopCapturer.getSources({
+                        types: ["screen"],
+                        thumbnailSize: { width: 1, height: 1 }
+                    });
+                    const selectedSource = sources.find(s => s.id === sourceId);
+                    if (selectedSource) {
+                        const displays = screen.getAllDisplays();
+                        const targetDisplay = displays.find(d => d.id.toString() === selectedSource.display_id)
+                            || displays[parseInt(sourceId.split(":")[1])]
+                            || displays[0];
+
+                        if (targetDisplay) {
+                            if (gameWindow.isMaximized()) gameWindow.unmaximize();
+                            if (gameWindow.isFullScreen()) gameWindow.setFullScreen(false);
+
+                            const { x, y, width, height } = targetDisplay.bounds;
+                            gameWindow.setBounds({
+                                x: Math.round(x + (width - 1280) / 2),
+                                y: Math.round(y + (height - 720) / 2),
+                                width: 1280,
+                                height: 720
+                            });
+
+                            gameWindow.maximize();
+                            gameWindow.focus();
+                        }
+                    }
+                } catch (error) {
+                    console.error("[ageofgame] Failed to switch screen bounds:", error);
+                }
+            }
         });
 
         void createGameWindow();

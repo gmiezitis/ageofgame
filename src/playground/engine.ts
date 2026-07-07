@@ -740,7 +740,8 @@ const drawBurn = (ctx: CanvasRenderingContext2D, impact: Impact): void => {
     blast.addColorStop(0.72, "rgba(127,29,29,0.14)");
     blast.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = blast;
-    drawJaggedShape(ctx, 0, 0, radius * 0.44, 7, impact.seed);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, radius * 0.5, radius * 0.36, 0, 0, Math.PI * 2);
     ctx.fill();
 
     for (let lobe = 0; lobe < 7; lobe += 1) {
@@ -755,11 +756,8 @@ const drawBurn = (ctx: CanvasRenderingContext2D, impact: Impact): void => {
         flame.addColorStop(0.62, "rgba(249,115,22,0.26)");
         flame.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = flame;
-        ctx.save();
-        ctx.translate(fx, fy);
-        ctx.rotate(flameAngle);
-        drawJaggedShape(ctx, 0, 0, lobeRadius * 0.68, 6, impact.seed + lobe);
-        ctx.restore();
+        ctx.beginPath();
+        ctx.ellipse(fx, fy, lobeRadius * 0.8, lobeRadius * 0.52, flameAngle, 0, Math.PI * 2);
         ctx.fill();
     }
 
@@ -774,12 +772,30 @@ const drawBurn = (ctx: CanvasRenderingContext2D, impact: Impact): void => {
         scorch.addColorStop(0.68, "rgba(100,44,13,0.08)");
         scorch.addColorStop(1, "rgba(0,0,0,0)");
         ctx.fillStyle = scorch;
-        ctx.save();
-        ctx.translate(sx, sy);
-        ctx.rotate(next() * Math.PI);
-        drawJaggedShape(ctx, 0, 0, sr * 0.84, 8, impact.seed + s);
-        ctx.restore();
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, sr, sr * 0.7, next() * Math.PI, 0, Math.PI * 2);
         ctx.fill();
+    }
+
+    ctx.globalCompositeOperation = "source-over";
+    for (let mark = 0; mark < 22; mark += 1) {
+        const angle = seededBetween(next, -Math.PI, Math.PI);
+        const distance = radius * seededBetween(next, 0.08, 0.58);
+        const length = radius * seededBetween(next, 0.06, 0.24);
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.quadraticCurveTo(
+            x + Math.cos(angle + 0.8) * length * 0.7,
+            y + Math.sin(angle + 0.8) * length * 0.4,
+            x + Math.cos(angle) * length,
+            y + Math.sin(angle) * length,
+        );
+        ctx.strokeStyle = mark % 4 === 0 ? "rgba(254,240,138,0.42)" : mark % 3 === 0 ? "rgba(249,115,22,0.34)" : "rgba(69,18,7,0.38)";
+        ctx.lineWidth = seededBetween(next, 0.45, 1.5);
+        ctx.lineCap = "round";
+        ctx.stroke();
     }
 
     ctx.globalCompositeOperation = "screen";
@@ -792,10 +808,23 @@ const drawBurn = (ctx: CanvasRenderingContext2D, impact: Impact): void => {
         ctx.fillStyle = ember % 3 === 0 ? "rgba(255,255,255,0.58)" : "rgba(251,191,36,0.64)";
         ctx.shadowColor = "rgba(249,115,22,0.72)";
         ctx.shadowBlur = emberSize * 3;
-        drawJaggedShape(ctx, emberX, emberY, emberSize, 5, impact.seed + ember);
+        ctx.beginPath();
+        ctx.arc(emberX, emberY, emberSize, 0, Math.PI * 2);
         ctx.fill();
     }
     ctx.shadowBlur = 0;
+
+    for (let streak = 0; streak < 10; streak += 1) {
+        const side = seededBetween(next, -radius * 0.22, radius * 0.22);
+        const start = seededBetween(next, -radius * 0.12, radius * 0.16);
+        const length = seededBetween(next, radius * 0.16, radius * 0.46);
+        ctx.strokeStyle = streak % 2 === 0 ? "rgba(254,240,138,0.3)" : "rgba(249,115,22,0.24)";
+        ctx.lineWidth = seededBetween(next, 0.55, 1.45);
+        ctx.beginPath();
+        ctx.moveTo(forwardX * start - forwardY * side, forwardY * start + forwardX * side);
+        ctx.lineTo(forwardX * (start + length) - forwardY * side * 0.45, forwardY * (start + length) + forwardX * side * 0.45);
+        ctx.stroke();
+    }
 
     const residual = ctx.createRadialGradient(0, 0, 0, 0, 0, radius * 0.48);
     residual.addColorStop(0, "rgba(255,255,255,0.26)");
@@ -803,7 +832,8 @@ const drawBurn = (ctx: CanvasRenderingContext2D, impact: Impact): void => {
     residual.addColorStop(0.48, "rgba(250,204,21,0.08)");
     residual.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = residual;
-    drawJaggedShape(ctx, 0, 0, radius * 0.28, 6, impact.seed + 99);
+    ctx.beginPath();
+    ctx.ellipse(0, 0, radius * 0.34, radius * 0.24, 0, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.restore();

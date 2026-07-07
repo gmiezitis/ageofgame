@@ -265,6 +265,8 @@ const RENDER_DPR_CAP = 1;
 const IMPACT_COUNT_UPDATE_MS = 90;
 const MIN_DRAG_IMPACT_DISTANCE = 30;
 const MIN_DRAG_IMPACT_MS = 60;
+const HAMMER_DRAG_IMPACT_DISTANCE = 48;
+const HAMMER_DRAG_IMPACT_MS = 96;
 const LASER_HOLD_CUT_MS = 22;
 const LASER_TIP_RESISTANCE = 0.085;
 const LASER_ANGLE_FOLLOW = 0.18;
@@ -631,6 +633,7 @@ const ScreenPlayground: React.FC = () => {
     }, []);
 
     const addScreenHitPulse = useCallback((x: number, y: number, angle: number, source: ScreenHitPulse["source"]) => {
+        if (source === "hammer") return;
         const now = performance.now();
         screenHitPulsesRef.current = [
             ...screenHitPulsesRef.current.slice(-22),
@@ -2699,7 +2702,7 @@ const ScreenPlayground: React.FC = () => {
         const forwardX = Math.cos(angle);
         const forwardY = Math.sin(angle);
         const spread = source === "splash" ? 16 + power * 9 : 24 + power * 18;
-        const count = source === "splash" ? 2 : source === "hammer" ? 2 : source === "scatter" ? 2 : 3;
+        const count = source === "splash" ? 2 : source === "hammer" ? 1 : source === "scatter" ? 2 : 3;
         addScreenHitPulse(x, y, angle, source);
         if (source !== "splash") {
             spawnDirectScreenChip(x, y, angle, power);
@@ -2918,34 +2921,17 @@ const ScreenPlayground: React.FC = () => {
 
         // 1. Highly sensitive cropping with surrounding shake/fall effects (staggered for performance & wave aesthetics)
         if (!heavy) {
-            if (Math.random() < 0.92) {
+            if (Math.random() < 0.66) {
                 enqueueHammerExtraction({
                     x,
                     y,
-                    radius: radius * 0.48,
+                    radius: radius * 0.42,
                     patchBackground: true,
                     spawnEntity: true,
                     shakeLife: 0,
                     detailOnly: true,
                 });
             }
-            const offsets = [
-                { dx: -36, dy: -20, shake: 0, delay: 34 },
-                { dx: 36, dy: 24, shake: 0, delay: 68 },
-            ];
-            offsets.forEach(({ dx, dy, shake, delay }) => {
-                if (Math.random() < 0.82) {
-                    enqueueHammerExtraction({
-                        x: x + dx,
-                        y: y + dy,
-                        radius: radius * 0.38,
-                        patchBackground: true,
-                        spawnEntity: true,
-                        shakeLife: shake,
-                        detailOnly: true,
-                    }, delay);
-                }
-            });
         } else {
             enqueueHammerExtraction({
                 x,
@@ -3756,8 +3742,9 @@ const ScreenPlayground: React.FC = () => {
         const last = lastDragImpactRef.current;
         const now = performance.now();
         const distance = Math.hypot(x - last.x, y - last.y);
-        const minDistance = MIN_DRAG_IMPACT_DISTANCE;
-        const minMs = MIN_DRAG_IMPACT_MS;
+        const isHammer = toolRef.current === "hammer";
+        const minDistance = isHammer ? HAMMER_DRAG_IMPACT_DISTANCE : MIN_DRAG_IMPACT_DISTANCE;
+        const minMs = isHammer ? HAMMER_DRAG_IMPACT_MS : MIN_DRAG_IMPACT_MS;
         if (distance < minDistance || now - last.at < minMs) {
             return;
         }
@@ -4022,33 +4009,22 @@ const ScreenPlayground: React.FC = () => {
                     position: fixed;
                     left: 0;
                     top: 0;
-                    width: 42px;
-                    height: 18px;
-                    border-radius: 50%;
+                    width: 1px;
+                    height: 1px;
+                    border-radius: 0;
                     pointer-events: none;
                     z-index: 25;
                     opacity: 0;
                     will-change: transform, opacity;
                     --hammer-aim-scale: 1;
                     --hammer-aim-impact: 0;
-                    background:
-                        radial-gradient(ellipse at 50% 62%, rgba(2,6,23,0.76) 0 22%, rgba(15,23,42,0.5) 43%, rgba(15,23,42,0) 78%),
-                        radial-gradient(ellipse at 50% 50%, rgba(248,250,252,0.82) 0 7%, rgba(248,250,252,0.28) 8% 15%, transparent 18%);
-                    filter: drop-shadow(0 5px 8px rgba(0,0,0,0.52));
-                    box-shadow: 0 8px 14px rgba(0,0,0,0.28), 0 0 calc(10px + var(--hammer-aim-impact) * 10px) rgba(248,250,252,0.2);
+                    background: transparent;
+                    filter: none;
+                    box-shadow: none;
                 }
                 .hammer-aim-marker::before,
                 .hammer-aim-marker::after {
-                    content: "";
-                    position: absolute;
-                    left: 50%;
-                    top: 50%;
-                    width: 32px;
-                    height: 2px;
-                    border-radius: 999px;
-                    background: linear-gradient(90deg, rgba(15,23,42,0), rgba(15,23,42,0.82), rgba(15,23,42,0));
-                    transform-origin: 50% 50%;
-                    opacity: 0.78;
+                    content: none;
                 }
                 .hammer-aim-marker::before {
                     transform: translate(-50%, -50%);

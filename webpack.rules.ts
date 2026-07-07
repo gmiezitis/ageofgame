@@ -30,7 +30,7 @@ export const rules: Required<ModuleOptions>["rules"] = [
         use: ["style-loader", "css-loader"],
     },
     {
-        test: /\.(png|jpe?g|gif|svg|mp3|mp4|wav)$/i,
+        test: /\.(png|jpe?g|gif|svg|ico|mp3|mp4|wav)$/i,
         type: "asset/resource",
     },
 ];

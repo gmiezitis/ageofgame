@@ -2,6 +2,7 @@ import { app, BrowserWindow, desktopCapturer, dialog, ipcMain, screen, shell, sy
 import fs from "fs";
 import path from "path";
 import started from "electron-squirrel-startup";
+import appIcon from "../build/icon.ico";
 
 type PlaygroundSource = {
     id: string;
@@ -162,6 +163,7 @@ const createGameWindow = async (): Promise<void> => {
         minHeight: 600,
         backgroundColor: "#05070d",
         autoHideMenuBar: true,
+        icon: appIcon,
         show: false,
         webPreferences: {
             preload: SCREEN_PLAYGROUND_WINDOW_PRELOAD_WEBPACK_ENTRY,

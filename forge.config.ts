@@ -1,4 +1,6 @@
 import type { ForgeConfig } from "@electron-forge/shared-types";
+import path from "path";
+import { MakerAppX, type MakerAppXConfig } from "@electron-forge/maker-appx";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
@@ -14,17 +16,44 @@ const parsePort = (value: string | undefined, fallback: number): number => {
     return Number.isInteger(parsed) && parsed >= 1024 && parsed <= 65535 ? parsed : fallback;
 };
 
+type StoreAppXConfig = MakerAppXConfig & {
+    identityName?: string;
+    publisherDisplayName?: string;
+    packageBackgroundColor?: string;
+};
+
+const appxAssetsPath = path.resolve(__dirname, "build", "appx");
+const iconPath = path.resolve(__dirname, "build", "icon");
+
+const appxConfig: StoreAppXConfig = {
+    packageName: "AgeofGame",
+    packageDisplayName: "Age of Game",
+    packageDescription: "Standalone desktop screen playground game.",
+    packageExecutable: "app\\ageofgame.exe",
+    packageBackgroundColor: "#05070d",
+    assets: appxAssetsPath,
+    makeVersionWinStoreCompatible: true,
+    publisher: process.env.AGEOFGAME_APPX_PUBLISHER || "CN=gmiez",
+    publisherDisplayName: process.env.AGEOFGAME_APPX_PUBLISHER_DISPLAY_NAME || "gmiez",
+    identityName: process.env.AGEOFGAME_APPX_IDENTITY_NAME || "AgeofGame",
+    devCert: process.env.AGEOFGAME_APPX_CERT,
+    certPass: process.env.AGEOFGAME_APPX_CERT_PASS,
+};
+
 const config: ForgeConfig = {
     packagerConfig: {
         asar: true,
         executableName: "ageofgame",
+        icon: iconPath,
         name: "Age of Game",
     },
     rebuildConfig: {},
     makers: [
         new MakerSquirrel({
             name: "ageofgame",
+            setupIcon: `${iconPath}.ico`,
         }),
+        new MakerAppX(appxConfig),
         new MakerZIP({}, ["darwin", "win32"]),
     ],
     plugins: [

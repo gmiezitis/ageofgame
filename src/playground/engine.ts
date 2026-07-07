@@ -498,7 +498,7 @@ export const createParticlesForTool = (tool: PlaygroundToolId, x: number, y: num
         return [];
     }
 
-    const count = tool === "glyph" ? 14 : tool === "splash" ? 5 : tool === "scatter" ? 12 : tool === "burn" ? 10 : 10;
+    const count = tool === "glyph" ? 14 : tool === "splash" ? 5 : tool === "scatter" ? 12 : tool === "burn" ? 10 : tool === "hammer" ? 5 : 10;
     const particles: Particle[] = [];
 
     for (let index = 0; index < count; index += 1) {

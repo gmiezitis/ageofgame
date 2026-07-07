@@ -31,6 +31,11 @@ declare module "*.svg" {
     export default src;
 }
 
+declare module "*.ico" {
+    const src: string;
+    export default src;
+}
+
 declare module "*.css" {
     const content: string;
     export default content;

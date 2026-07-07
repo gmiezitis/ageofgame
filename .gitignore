@@ -2,7 +2,12 @@ node_modules/
 .webpack/
 out/
 dist/
-build/
+build/*
+!build/appx/
+!build/appx/*.png
+!build/icon.ico
+!build/icon.png
+!build/icon-source.png
 *.log
 .DS_Store
 .env

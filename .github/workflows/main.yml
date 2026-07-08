@@ -1,0 +1,99 @@
+name: Build MSIX
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-msix:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install MSIX packager
+        run: npm install --no-save electron-windows-msix@2.0.4
+
+      - name: Create MSIX assets
+        shell: powershell
+        run: |
+          New-Item -ItemType Directory -Force build\msix | Out-Null
+          Copy-Item build\appx\StoreLogo.scale-100.png build\msix\icon.png -Force
+          Copy-Item build\appx\Square44x44Logo.scale-100.png build\msix\Square44x44Logo.png -Force
+          Copy-Item build\appx\Square44x44Logo.scale-200.png build\msix\Square44x44Logo.scale-200.png -Force
+          Copy-Item build\appx\Square44x44Logo.scale-100.png build\msix\Square44x44Logo.targetsize-24.png -Force
+          Copy-Item build\appx\Square150x150Logo.scale-100.png build\msix\Square150x150Logo.png -Force
+          Copy-Item build\appx\Square150x150Logo.scale-200.png build\msix\Square150x150Logo.scale-200.png -Force
+          Copy-Item build\appx\Wide310x150Logo.scale-200.png build\msix\Wide310x150Logo.scale-200.png -Force
+          Copy-Item build\appx\Wide310x150Logo.scale-200.png build\msix\SplashScreen.scale-200.png -Force
+          Copy-Item build\appx\StoreLogo.scale-100.png build\msix\LockScreenLogo.scale-200.png -Force
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Package Electron app
+        run: npx electron-forge package --platform=win32 --arch=x64
+
+      - name: Build unsigned MSIX
+        shell: powershell
+        run: |
+          $script = @'
+          const path = require("path");
+          const fs = require("fs-extra");
+          const { packageMSIX } = require("electron-windows-msix");
+          const packageJson = require("./package.json");
+
+          (async () => {
+            const root = process.cwd();
+            const outputDir = path.join(root, "out", "make", "msix", "x64");
+            await fs.ensureDir(outputDir);
+
+            const result = await packageMSIX({
+              appDir: path.join(root, "out", "Age of Game-win32-x64"),
+              outputDir,
+              packageName: "Age of Game.msix",
+              packageAssets: path.join(root, "build", "msix"),
+              windowsKitPath: "C:\\Program Files (x86)\\Windows Kits\\10\\bin\\10.0.26100.0\\x64",
+              sign: false,
+              manifestVariables: {
+                packageIdentity: "AgeofGame",
+                publisher: "CN=gmiez",
+                publisherDisplayName: "gmiez",
+                packageVersion: packageJson.version,
+                packageDisplayName: "Age of Game",
+                appDisplayName: "Age of Game",
+                packageDescription: packageJson.description,
+                packageBackgroundColor: "#05070d",
+                appExecutable: "ageofgame.exe",
+                targetArch: "x64",
+                packageMinOSVersion: "10.0.19041.0",
+                packageMaxOSVersionTested: "10.0.26100.0"
+              }
+            });
+
+            console.log(`MSIX created: ${result.msixPackage}`);
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          '@
+
+          $script | node -
+
+      - name: Upload MSIX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Age-of-Game-MSIX
+          path: out/make/msix/x64/*.msix
